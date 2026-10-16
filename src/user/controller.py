@@ -1,5 +1,5 @@
 from anyio import current_time
-from fastapi import HTTPException,status,Request
+from fastapi import HTTPException,status,Request,BackgroundTasks
 from src.user.dtos import UserSchema,LoginSchema
 from sqlalchemy.orm import Session
 from src.user.models import UserModel
@@ -8,6 +8,7 @@ from src.utils.settings import settings
 from datetime import datetime, timedelta
 import jwt
 from jwt import InvalidTokenError
+from src.utils.mail import send_email
 
 password_hash = PasswordHash.recommended()
 
@@ -18,7 +19,7 @@ def get_password_hash(password):
 def verify_password(plain_password, hashed_password):
   return password_hash.verify(plain_password, hashed_password)
 
-def register(body: UserSchema, db: Session):
+async def register(body: UserSchema, db: Session,bg_task:BackgroundTasks):
   is_user = db.query(UserModel).filter(UserModel.username == body.username).first()
   if is_user:
     raise HTTPException(status_code=400, detail="Username already exists.")
@@ -38,6 +39,11 @@ def register(body: UserSchema, db: Session):
   db.commit()
   db.refresh(new_user)
 
+  # send user email
+  # response = await send_email([new_user.email])
+  bg_task.add_task(send_email,[new_user.email])
+  # print(response)
+
   return new_user
 
 def login_user(body: LoginSchema, db: Session):
@@ -49,12 +55,14 @@ def login_user(body: LoginSchema, db: Session):
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password.")
 
   # exp_time = datetime.now() + timedelta(minutes=settings.EXP_TIME)
-  exp_time = datetime.now() + timedelta(seconds = 20)
+  exp_time = datetime.now() + timedelta(minutes= settings.EXP_TIME)
   print(exp_time)
   token = jwt.encode({"_id": user.id,"exp": exp_time.timestamp()}, settings.SECRET_KEY, settings.ALGORITHM)
 
   return {"token": token}
 
+
+# TOKEN SEND
 def is_authenticated(request:Request,db:Session):
   try:
       token = request.headers.get("Authorization")
@@ -63,7 +71,7 @@ def is_authenticated(request:Request,db:Session):
       token = token.split(" ")[-1]
 
       data = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
-      # user_id = data.get("_id")
+      user_id = data.get("_id")
       # exp_time = int(data.get("exp"))
 
       # current_time = datetime.now().timestamp()
@@ -78,4 +86,4 @@ def is_authenticated(request:Request,db:Session):
 
       return user
   except InvalidTokenError:
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You are a=unauthorized.")
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You are unauthorized.")
