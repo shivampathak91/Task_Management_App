@@ -5,9 +5,9 @@ from typing import List
 
 
 conf = ConnectionConfig(
-    MAIL_USERNAME = "pathakshivam9136@gmail.com",
+    MAIL_USERNAME = "@gmail.com",
     MAIL_PASSWORD = "your app password",
-    MAIL_FROM = "pathakshivam9136@gmail.com",
+    MAIL_FROM = "@gmail.com",
     MAIL_PORT = 587,
     MAIL_SERVER = "smtp.gmail.com",
     MAIL_FROM_NAME="Shivam Learnings",
