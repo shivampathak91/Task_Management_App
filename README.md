@@ -28,10 +28,7 @@ ALGORITHM=HS256
 EXP_TIME=60
 ```
 
-Keep `.env` and all real credentials out of Git. Registration attempts to send a
-confirmation email using the SMTP settings in `src/utils/mail.py`. That module
-currently does not read its credentials from environment variables; do not add
-real passwords or app-passwords to tracked source files.
+Keep `.env` and all real credentials out of Git.
 
 ## Run locally
 
@@ -41,6 +38,25 @@ uvicorn main:app --reload
 
 The API is available at `http://127.0.0.1:8000`. FastAPI's interactive API
 documentation is at `http://127.0.0.1:8000/docs`.
+
+## Registration email
+
+When a user registers through `POST /user/register`, the app queues a
+confirmation email to the address provided. Email is sent through Gmail SMTP
+(`smtp.gmail.com`, port `587`, STARTTLS), as configured in
+`src/utils/mail.py`.
+
+The mail module currently contains placeholder Gmail settings. Email delivery
+will not work until valid SMTP credentials are configured. For Gmail, use a
+Google App Password (not your regular account password) and ensure 2-Step
+Verification is enabled on the Google account.
+
+**Security note:** The current mail module keeps its SMTP settings in source
+code rather than reading them from environment variables. Do not put a real
+password or App Password in a file that will be committed or pushed to GitHub.
+As currently written, this implementation is not suitable for safely enabling
+email on a public deployment without changing the code to load credentials from
+private environment variables.
 
 ## API endpoints
 
